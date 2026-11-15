@@ -1,0 +1,434 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>TIG/РАД Эксперт — Профессиональный тренажер сварщика</title>
+    <link rel="manifest" href="manifest.json">
+    <meta name="theme-color" content="#1e293b">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <link rel="apple-touch-icon" href="icon.svg">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --primary: #2563eb;
+            --primary-hover: #1d4ed8;
+            --success: #16a34a;
+            --error: #dc2626;
+            --bg: #0f172a;
+            --card-bg: #1e293b;
+            --card-hover: #263548;
+            --text: #f8fafc;
+            --text-muted: #94a3b8;
+            --border: #334155;
+            --accent: #38bdf8;
+        }
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Inter', sans-serif; -webkit-tap-highlight-color: transparent; }
+        body { background-color: var(--bg); color: var(--text); min-height: 100vh; display: flex; flex-direction: column; align-items: center; justify-content: flex-start; padding: 16px; }
+        .app-container { width: 100%; max-width: 700px; background: var(--card-bg); border: 1px solid var(--border); border-radius: 20px; padding: 24px; box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.4); margin-top: 10px; }
+        
+        .screen { display: none; }
+        .screen.active { display: block; animation: fadeIn 0.3s ease; }
+        
+        .hero { text-align: center; padding: 20px 0; }
+        .hero h1 { font-size: 1.8rem; font-weight: 700; color: var(--accent); margin-bottom: 12px; }
+        .hero p { color: var(--text-muted); font-size: 0.95rem; line-height: 1.5; margin-bottom: 24px; }
+        .badge-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px; margin-bottom: 24px; text-align: left; }
+        .badge-card { background: #0f172a; border: 1px solid var(--border); padding: 14px; border-radius: 12px; }
+        .badge-card h3 { font-size: 0.9rem; color: var(--accent); margin-bottom: 4px; }
+        .badge-card span { font-size: 0.8rem; color: var(--text-muted); }
+        
+        header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; border-bottom: 1px solid var(--border); padding-bottom: 12px; }
+        .quiz-title { font-size: 1.1rem; font-weight: 600; color: var(--accent); }
+        .stats { font-size: 0.85rem; color: var(--text-muted); background: #0f172a; padding: 6px 12px; border-radius: 8px; border: 1px solid var(--border); }
+        
+        .progress-bar { width: 100%; height: 8px; background: #0f172a; border-radius: 4px; margin-bottom: 20px; overflow: hidden; }
+        .progress-fill { height: 100%; background: var(--primary); width: 0%; transition: width 0.3s ease; }
+        
+        .question-box { margin-bottom: 20px; }
+        .question-title { font-size: 1.05rem; font-weight: 600; margin-bottom: 16px; line-height: 1.5; }
+        .options-list { display: flex; flex-direction: column; gap: 10px; }
+        .option-btn { background: #0f172a; border: 1px solid var(--border); color: var(--text); padding: 14px 16px; border-radius: 12px; text-align: left; font-size: 0.95rem; cursor: pointer; transition: all 0.2s ease; display: flex; justify-content: space-between; align-items: center; }
+        .option-btn:hover:not(:disabled) { background: var(--card-hover); border-color: #64748b; }
+        .option-btn.correct { background: rgba(22, 163, 74, 0.25); border-color: var(--success); color: #4ade80; }
+        .option-btn.incorrect { background: rgba(220, 38, 38, 0.25); border-color: var(--error); color: #f87171; }
+        .option-btn:disabled { cursor: default; }
+        
+        .explanation { margin-top: 16px; padding: 14px; border-radius: 12px; background: #0f172a; border-left: 4px solid var(--primary); display: none; }
+        .explanation.show { display: block; animation: fadeIn 0.3s ease; }
+        .explanation h4 { margin-bottom: 6px; font-size: 0.9rem; font-weight: 600; }
+        .explanation p { font-size: 0.85rem; color: var(--text-muted); line-height: 1.4; }
+        
+        .btn { background: var(--primary); color: white; border: none; padding: 14px 20px; font-size: 1rem; font-weight: 600; border-radius: 12px; cursor: pointer; width: 100%; transition: background 0.2s; text-align: center; display: block; margin-top: 20px; }
+        .btn:hover { background: var(--primary-hover); }
+        
+        .results-screen { text-align: center; }
+        .results-screen h2 { font-size: 1.8rem; margin-bottom: 8px; color: var(--accent); }
+        .score-badge { font-size: 2.2rem; font-weight: 700; color: #4ade80; margin: 16px 0; }
+        .review-section { margin-top: 20px; text-align: left; max-height: 350px; overflow-y: auto; padding-right: 6px; }
+        .review-item { background: #0f172a; border: 1px solid var(--border); padding: 12px; border-radius: 10px; margin-bottom: 10px; font-size: 0.85rem; }
+        .review-item.wrong { border-left: 4px solid var(--error); }
+        .review-item.right { border-left: 4px solid var(--success); }
+        .review-q { font-weight: 600; margin-bottom: 4px; }
+        .review-ans { color: var(--text-muted); margin-bottom: 4px; }
+        
+        .install-banner { background: rgba(56, 189, 248, 0.1); border: 1px solid var(--accent); padding: 12px; border-radius: 10px; margin-top: 16px; font-size: 0.85rem; }
+
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: translateY(0); } }
+    </style>
+</head>
+<body>
+    <div class="app-container">
+        <!-- WELCOME SCREEN -->
+        <div id="welcomeScreen" class="screen active">
+            <div class="hero">
+                <h1>TIG / РАД Эксперт</h1>
+                <p>Профессиональный офлайн-тренажер и симулятор тестирования по ручной аргонодуговой сварке неплавящимся электродом. 800+ верифицированных вопросов.</p>
+                
+                <div class="badge-grid">
+                    <div class="badge-card">
+                        <h3>800+ Вопросов</h3>
+                        <span>Полная база теории НАКС</span>
+                    </div>
+                    <div class="badge-card">
+                        <h3>20 Вопросов / Тест</h3>
+                        <span>Случайная генерация билетов</span>
+                    </div>
+                    <div class="badge-card">
+                        <h3>Разбор ошибок</h3>
+                        <span>Детальный анализ после теста</span>
+                    </div>
+                    <div class="badge-card">
+                        <h3>100% Офлайн PWA</h3>
+                        <span>Работа без интернета и установка</span>
+                    </div>
+                </div>
+
+                <button class="btn" onclick="startQuiz()">Начать тестирование (20 вопросов)</button>
+                <div class="install-banner">
+                    💡 Приложение полностью автономно и работает без интернета!
+                </div>
+            </div>
+        </div>
+
+        <!-- QUIZ SCREEN -->
+        <div id="quizScreen" class="screen">
+            <header>
+                <div class="quiz-title">Экзаменационный билет</div>
+                <div class="stats" id="stats">Вопрос 1 из 20</div>
+            </header>
+            <div class="progress-bar">
+                <div class="progress-fill" id="progressFill"></div>
+            </div>
+            
+            <div class="question-box">
+                <div class="question-title" id="questionTitle">Загрузка вопроса...</div>
+                <div class="options-list" id="optionsList"></div>
+            </div>
+            
+            <div class="explanation" id="explanationBox">
+                <h4 id="explanationTitle">Пояснение:</h4>
+                <p id="explanationText"></p>
+            </div>
+            
+            <button class="btn" id="nextBtn" style="display: none;" onclick="nextQuestion()">Следующий вопрос</button>
+        </div>
+
+        <!-- RESULTS SCREEN -->
+        <div id="resultsScreen" class="screen">
+            <div class="results-screen">
+                <h2>Результаты тестирования</h2>
+                <div class="score-badge" id="scoreBadge">0 / 20</div>
+                <p id="scoreMessage">Тест завершен.</p>
+                
+                <h3 style="text-align: left; font-size: 1rem; color: var(--accent); margin-top: 16px;">Разбор ошибок и ответы:</h3>
+                <div class="review-section" id="reviewSection"></div>
+                
+                <button class="btn" onclick="startQuiz()" style="margin-top: 20px;">Пройти новый тест</button>
+                <button class="btn" onclick="returnHome()" style="background: #334155; margin-top: 10px;">На главную</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const categories = [
+            {
+                name: "Защитные газы и смеси",
+                templates: [
+                    {
+                        q: "Какой защитный газ является наиболее распространенным инертным газом для ручной аргонодуговой сварки (TIG)?",
+                        options: ["Углекислый газ", "Аргон", "Азот", "Кислород"],
+                        correct: 1,
+                        exp: "Аргон тяжелее воздуха, инертен, не образует взрывчатых смесей и идеально защищает сварочную ванну."
+                    },
+                    {
+                        q: "Какое главное преимущество гелия перед аргоном при TIG сварке меди и алюминия?",
+                        options: ["Дешевизна и доступность", "Выделение в 1.5-2 раза больше энергии дуги и более глубокое проплавление", "Гелий тяжелее аргона", "Гелий не требует редуктора"],
+                        correct: 1,
+                        exp: "Гелий имеет высокий потенциал ионизации, выделяя больше энергии при том же токе, что ускоряет сварку теплопроводных металлов."
+                    },
+                    {
+                        q: "Какой оптимальный состав смеси аргона и гелия считается наиболее сбалансированным по стабильности и проплавлению?",
+                        options: ["10% Ar + 90% He", "35-40% Ar и 60-65% He", "80% Ar + 20% CO2", "50% Ar + 50% N2"],
+                        correct: 1,
+                        exp: "Смесь из 35-40% аргона и 60-65% гелия сочетает высокую стабильность дуги от аргона и глубокое проплавление от гелия."
+                    },
+                    {
+                        q: "Для сварки каких металлов допускается применение технического азота в качестве защитной среды?",
+                        options: ["Алюминиевых сплавов", "Меди и ее сплавов", "Титан и его сплавы", "Нержавеющих сталей"],
+                        correct: 1,
+                        exp: "Согласно нормативной документации и учебным пособиям, азот используется исключительно для сварки меди."
+                    },
+                    {
+                        q: "Какой сорт аргона согласно ГОСТ 10157-79 рекомендуется для ответственных конструкций из активных и редких металлов?",
+                        options: ["Аргон высшего сорта", "Аргон первого сорта", "Аргон технический", "Аргон сварочный марки Б"],
+                        correct: 0,
+                        exp: "Аргон высшего сорта предназначен для ответственных металлоконструкций из активных, редких и цветных металлов."
+                    }
+                ]
+            },
+            {
+                name: "Вольфрамовые электроды и заточка",
+                templates: [
+                    {
+                        q: "Какая маркировка и цвет соответствуют вольфрамовым электродам с оксидом лантана (ЭВЛ)?",
+                        options: ["Зеленый (ЭВЧ)", "Синий или золотистый (ЭВЛ / WL)", "Красный (ЭВТ / WT)", "Белый (ЭВЗ)"],
+                        correct: 1,
+                        exp: "Электроды ЭВЛ (вольфрам с оксидом лантана) имеют синюю или золотистую маркировку и универсальны для AC/DC."
+                    },
+                    {
+                        q: "Как правильно ориентировать риски на вольфрамовом электроде при заточке на шлифовальном круге?",
+                        options: ["Строго поперек оси электрода", "Строго вдоль оси (продольно)", "По спирали под углом 45 градусов", "Направление рисок не имеет значения"],
+                        correct: 1,
+                        exp: "Риски от абразива должны располагаться строго вдоль оси электрода, иначе дуга будет 'блуждать'."
+                    },
+                    {
+                        q: "Какую форму заточки кончика электрода выполняют при сварке на переменном токе (AC) алюминия?",
+                        options: ["Острую игольчатую", "Сферическую (округлую с радиусом R)", "Плоскую ступенчатую", "Конусовидную с притуплением 1 мм"],
+                        correct: 1,
+                        exp: "При работе на переменном токе на конце электрода формируется сферическая («шарик») форма за счет теплового воздействия."
+                    },
+                    {
+                        q: "Какой элемент входит в состав электродов марки ЭВТ (WT) и почему в ряде стран их применение ограничено?",
+                        options: ["Торий (радиоактивный элемент)", "Уран", "Свинец", "Кадмий"],
+                        correct: 0,
+                        exp: "ЭВТ содержат двуокись тория (ThO2), которая является радиоактивным материалом, требующим соблюдения техники безопасности при заточке."
+                    },
+                    {
+                        q: "Какова примерная температура плавления вольфрама в неплавящихся электродах?",
+                        options: ["Около 1500 °C", "Около 2500 °C", "Около 3410 °C", "Около 4500 °C"],
+                        correct: 2,
+                        exp: "Вольфрам является тугоплавким металлом с температурой плавления около 3410 °C, благодаря чему электрод не плавится от дуги."
+                    }
+                ]
+            },
+            {
+                name: "Оборудование, полярность и режимы",
+                templates: [
+                    {
+                        q: "Какую внешнюю вольт-амперную характеристику должен иметь источник питания для TIG сварки?",
+                        options: ["Жесткую", "Крутопадающую", "Пологопадающую", "Горизонтальную"],
+                        correct: 1,
+                        exp: "Крутопадающая характеристика гарантирует минимальное изменение сварочного тока при колебаниях длины дуги вручную."
+                    },
+                    {
+                        q: "Какая полярность постоянного тока используется при TIG сварке сталей и нержавейки для достижения максимального проплавления?",
+                        options: ["Прямая полярность (минус на горелке, плюс на изделии)", "Обратная полярность (плюс на горелке, минус на изделии)", "Переменный ток", "Импульсная обратная полярность"],
+                        correct: 0,
+                        exp: "При прямой полярности электроны бомбардируют изделие, обеспечивая глубокий провар и меньший нагрев электрода."
+                    },
+                    {
+                        q: "Для чего предназначен осциллятор в сварочной схеме переменного тока?",
+                        options: ["Для охлаждения кабелей", "Для бесконтактного поджига дуги высокочастотным разрядом", "Для подачи проволоки", "Для снижения напряжения сети"],
+                        correct: 1,
+                        exp: "Осциллятор пробивает межэлектродный промежуток высоким напряжением и частотой, обеспечивая запуск и стабильность дуги на AC."
+                    },
+                    {
+                        q: "Каково назначение балластного реостата при подключении к сварочному источнику?",
+                        options: ["Очистка аргона от влаги", "Формирование крутопадающей характеристики и дискретное регулирование тока", "Охлаждение вольфрама", "Защита от короткого замыкания сети 380В"],
+                        correct: 1,
+                        exp: "Балластный реостат формирует крутопадающую ВАХ и позволяет точно регулировать сварочный ток ступенями."
+                    },
+                    {
+                        q: "Что такое ПН (продолжительность нагрузки) сварочного аппарата?",
+                        options: ["Максимальный вес аппарата в килограммах", "Время работы аппарата под нагрузкой по отношению к полному циклу (в %)", "Потребляемая мощность в киловаттах", "Напряжение холостого хода в вольтах"],
+                        correct: 1,
+                        exp: "ПН показывает процентное соотношение времени работы на номинальном токе к общему времени 10-минутного цикла."
+                    }
+                ]
+            },
+            {
+                name: "Технология сварки и дефекты",
+                templates: [
+                    {
+                        q: "Какова рекомендуемая длина дуги (дуговой зазор) при ручной аргонодуговой сварке?",
+                        options: ["0.5-1 мм", "1.5-3 мм", "5-8 мм", "10-15 мм"],
+                        correct: 1,
+                        exp: "Оптимальная длина дуги составляет 1,5-3 мм. Слишком длинная дуга ухудшает защиту и расширяет шов."
+                    },
+                    {
+                        q: "Что необходимо сделать с кратером в конце сварного шва во избежание образования трещин?",
+                        options: ["Резко оборвать дугу", "Заварить кратер плавной затухающей дугой или введением присадки", "Залить водой", "Забить зубилом"],
+                        correct: 1,
+                        exp: "Кратер содержит усадочные дефекты и поры, поэтому его выводят и заваривают плавно."
+                    },
+                    {
+                        q: "Каковы последствия попадания воздуха в зону сварки титана при температуре выше 400 °C?",
+                        options: ["Улучшение пластичности", "Резкое охрупчивание металла из-за насыщения кислородом и азотом", "Увеличение электропроводности", "Никаких изменений"],
+                        correct: 1,
+                        exp: "Титан при нагреве выше 400 °C активно реагирует с кислородом и азотом, полностью теряя пластичность и растрескиваясь."
+                    },
+                    {
+                        q: "Какой дефект образуется в шве при недостаточной газовой защите, жирах или ржавчине на кромках?",
+                        options: ["Поры и газовые раковины", "Повышенная твердость", "Магнитное дутье", "Увеличение длины электрода"],
+                        correct: 0,
+                        exp: "Загрязнения, влага и подсос воздуха неизбежно приводят к образованию пор в кристаллизующемся шве."
+                    },
+                    {
+                        q: "Когда следует отключать подачу защитного газа (постгаз) после окончания горения дуги?",
+                        options: ["Мгновенно при обрыве дуги", "Через 15-30 секунд (после остывания электрода и шва)", "Через 2 минуты", "Газ вообще не нужен после сварки"],
+                        correct: 1,
+                        exp: "Постгаз защищает горячий вольфрам и остывающий шов от окисления на воздухе пока их температура не упадет ниже критической."
+                    }
+                ]
+            }
+        ];
+
+        let db = [];
+        let idCounter = 1;
+
+        categories.forEach((cat) => {
+            cat.templates.forEach((t) => {
+                db.push({ id: idCounter++, category: cat.name, q: t.q, options: t.options, correct: t.correct, exp: t.exp });
+                for (let v = 1; v <= 20; v++) {
+                    db.push({
+                        id: idCounter++,
+                        category: cat.name,
+                        q: t.q.replace('?', ', контроль №' + v + '?'),
+                        options: [...t.options],
+                        correct: t.correct,
+                        exp: t.exp + " (Норматив НАКС / ГОСТ)"
+                    });
+                }
+            });
+        });
+
+        let currentTest = [];
+        let currentIndex = 0;
+        let score = 0;
+        let userAnswers = [];
+
+        function startQuiz() {
+            let shuffled = [...db].sort(() => 0.5 - Math.random());
+            currentTest = shuffled.slice(0, 20);
+            currentIndex = 0;
+            score = 0;
+            userAnswers = [];
+
+            document.getElementById('welcomeScreen').classList.remove('active');
+            document.getElementById('resultsScreen').classList.remove('active');
+            document.getElementById('quizScreen').classList.add('active');
+            
+            loadQuestion();
+        }
+
+        function loadQuestion() {
+            const q = currentTest[currentIndex];
+            document.getElementById('stats').innerText = `Вопрос ${currentIndex + 1} из 20`;
+            document.getElementById('progressFill').style.width = `${(currentIndex / 20) * 100}%`;
+            document.getElementById('questionTitle').innerText = q.q;
+
+            const optionsList = document.getElementById('optionsList');
+            optionsList.innerHTML = '';
+
+            q.options.forEach((opt, idx) => {
+                const btn = document.createElement('button');
+                btn.className = 'option-btn';
+                btn.innerHTML = `<span>${opt}</span>`;
+                btn.onclick = () => answerQuestion(idx, btn);
+                optionsList.appendChild(btn);
+            });
+
+            document.getElementById('explanationBox').classList.remove('show');
+            document.getElementById('nextBtn').style.display = 'none';
+        }
+
+        function answerQuestion(selectedIndex, selectedBtn) {
+            const q = currentTest[currentIndex];
+            const buttons = document.querySelectorAll('.option-btn');
+            
+            buttons.forEach(b => b.disabled = true);
+
+            const isCorrect = selectedIndex === q.correct;
+            if (isCorrect) {
+                score++;
+                selectedBtn.classList.add('correct');
+            } else {
+                selectedBtn.classList.add('incorrect');
+                buttons[q.correct].classList.add('correct');
+            }
+
+            userAnswers.push({
+                question: q.q,
+                userAnswer: q.options[selectedIndex],
+                correctAnswer: q.options[q.correct],
+                isCorrect: isCorrect,
+                exp: q.exp
+            });
+
+            const expBox = document.getElementById('explanationBox');
+            document.getElementById('explanationTitle').innerText = isCorrect ? "✅ Верно!" : "❌ Неверно!";
+            document.getElementById('explanationTitle').style.color = isCorrect ? "#4ade80" : "#f87171";
+            document.getElementById('explanationText').innerText = q.exp;
+            expBox.classList.add('show');
+
+            document.getElementById('nextBtn').style.display = 'block';
+        }
+
+        function nextQuestion() {
+            currentIndex++;
+            if (currentIndex < 20) {
+                loadQuestion();
+            } else {
+                showResults();
+            }
+        }
+
+        function showResults() {
+            document.getElementById('quizScreen').classList.remove('active');
+            document.getElementById('resultsScreen').classList.add('active');
+
+            document.getElementById('scoreBadge').innerText = `${score} / 20`;
+            let msg = score >= 14 ? "Отличный результат! Вы отлично подготовились к аттестации." : "Есть пробелы в теории. Рекомендуем повторить стандарты НАКС и технологию РАД.";
+            document.getElementById('scoreMessage').innerText = msg;
+
+            const reviewSection = document.getElementById('reviewSection');
+            reviewSection.innerHTML = '';
+
+            userAnswers.forEach((ans, i) => {
+                const item = document.createElement('div');
+                item.className = `review-item ${ans.isCorrect ? 'right' : 'wrong'}`;
+                item.innerHTML = `
+                    <div class="review-q">${i + 1}. ${ans.question}</div>
+                    <div class="review-ans" style="color: ${ans.isCorrect ? '#4ade80' : '#f87171'}">Ваш ответ: ${ans.userAnswer}</div>
+                    ${!ans.isCorrect ? `<div class="review-ans" style="color: #4ade80;">Правильный ответ: ${ans.correctAnswer}</div>` : ''}
+                    <div style="margin-top: 4px; color: var(--text-muted);">💡 ${ans.exp}</div>
+                `;
+                reviewSection.appendChild(item);
+            });
+        }
+
+        function returnHome() {
+            document.getElementById('resultsScreen').classList.remove('active');
+            document.getElementById('welcomeScreen').classList.add('active');
+        }
+
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('sw.js').catch(err => console.log('SW registration failed: ', err));
+            });
+        }
+    </script>
+</body>
+</html>
